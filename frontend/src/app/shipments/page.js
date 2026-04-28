@@ -46,10 +46,15 @@ export default function ShipmentsPage() {
 
   useEffect(() => {
     fetchShipments();
-
+  const failSafeLoader = setTimeout(() => {
+    setLoading(false);
+  }, 4000);
     const interval = setInterval(fetchShipments, 7000);
 
-    return () => clearInterval(interval);
+    return () => {
+    clearInterval(interval);
+    clearTimeout(failSafeLoader);
+  };
   }, []);
 
   if (loading) return <Loader text="Loading Shipment Operations..." />;
