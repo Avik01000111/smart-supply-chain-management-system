@@ -1,0 +1,4 @@
+backend/serviceAccountKey.json
+.env
+node_modules/
+frontend/.next/
