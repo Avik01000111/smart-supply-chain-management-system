@@ -37,10 +37,19 @@ export default function TrackerPage() {
   useEffect(() => {
     fetchShipments();
 
-    const interval = setInterval(fetchShipments, 6000);
+    
+   
+  const failSafeLoader = setTimeout(() => {
+    setLoading(false);
+  }, 4000);
 
-    return () => clearInterval(interval);
-  }, []);
+  const interval = setInterval(fetchShipments, 6000);
+
+  return () => {
+    clearInterval(interval);
+    clearTimeout(failSafeLoader);
+  };
+}, []);
 
   if (loading) return <Loader text="Loading Live Shipment Tracker..." />;
 
