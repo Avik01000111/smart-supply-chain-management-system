@@ -68,11 +68,16 @@ export default function AdminPage() {
 
   useEffect(() => {
     fetchAdminStats();
-
+  const failSafeLoader = setTimeout(() => {
+    setLoading(false);
+  }, 4000);
     const interval = setInterval(fetchAdminStats, 8000);
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+    clearInterval(interval);
+    clearTimeout(failSafeLoader);
+  };
+}, []);
 
   if (loading) return <Loader text="Loading Admin Simulation Controls..." />;
 
