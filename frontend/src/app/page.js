@@ -14,37 +14,60 @@ import {
 import { motion } from "framer-motion";
 
 export default function DashboardPage() {
-  const [analytics, setAnalytics] = useState(null);
-  const [shipments, setShipments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState({});
+const [shipments, setShipments] = useState([]);
+const [loading, setLoading] = useState(true);
 
   // Fetch Dashboard Data
-  const fetchDashboardData = async () => {
-    try {
-      const [analyticsRes, shipmentsRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API}/api/analytics/dashboard`),
-        fetch(`${process.env.NEXT_PUBLIC_API}/api/shipment/all`)
-      ]);
+ const fetchWithTimeout = async (url, timeout = 8000) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
 
-      const analyticsData = await analyticsRes.json();
-      const shipmentData = await shipmentsRes.json();
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      cache: "no-store"
+    });
+    clearTimeout(timer);
+    return response;
+  } catch (error) {
+    clearTimeout(timer);
+    throw error;
+  }
+};
 
-      setAnalytics(analyticsData.data || {});
-      setShipments(shipmentData.data || []);
-      setLoading(false);
-    } catch (error) {
-      console.log("Dashboard Fetch Error:", error);
-      setLoading(false);
-    }
-  };
+const fetchDashboardData = async () => {
+  try {
+    const [analyticsRes, shipmentsRes] = await Promise.all([
+      fetchWithTimeout(`${process.env.NEXT_PUBLIC_API}/api/analytics/dashboard`),
+      fetchWithTimeout(`${process.env.NEXT_PUBLIC_API}/api/shipment/all`)
+    ]);
 
+    const analyticsData = await analyticsRes.json();
+    const shipmentData = await shipmentsRes.json();
+
+    setAnalytics(analyticsData?.data || {});
+    setShipments(shipmentData?.data || []);
+  } catch (error) {
+    console.log("Dashboard Fetch Error:", error.message);
+  } finally {
+    setLoading(false);
+  }
+};
   useEffect(() => {
-    fetchDashboardData();
+  fetchDashboardData();
 
-    const interval = setInterval(fetchDashboardData, 8000);
+  const failSafeLoader = setTimeout(() => {
+    setLoading(false);
+  }, 4000);
 
-    return () => clearInterval(interval);
-  }, []);
+  const interval = setInterval(fetchDashboardData, 8000);
+
+  return () => {
+    clearInterval(interval);
+    clearTimeout(failSafeLoader);
+  };
+}, []);
 
   if (loading) return <Loader text="Loading Command Dashboard..." />;
 
